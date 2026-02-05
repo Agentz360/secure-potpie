@@ -1,6 +1,6 @@
 import asyncio
 import os
-import random
+import secrets
 import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional, Tuple
@@ -151,7 +151,7 @@ class GithubService:
                     decoded_content = content_bytes.decode("latin1", errors="replace")
             lines = decoded_content.splitlines()
 
-            if (start_line == end_line == 0) or (start_line == end_line == None):
+            if (start_line == end_line == 0) or (start_line == end_line is None):
                 return decoded_content
             # added -2 to start and end line to include the function definition/ decorator line
             # start = start_line - 2 if start_line - 2 > 0 else 0
@@ -346,7 +346,7 @@ class GithubService:
                 if token_list_str:
                     tokens = [t.strip() for t in token_list_str.split(",") if t.strip()]
                     if tokens:
-                        github_oauth_token = random.choice(tokens)
+                        github_oauth_token = secrets.choice(tokens)
                         logger.info("Using token from GH_TOKEN_LIST as fallback")
 
                 # Fall back to CODE_PROVIDER_TOKEN if GH_TOKEN_LIST not available
@@ -386,6 +386,7 @@ class GithubService:
             }
 
             ssl_context = ssl.create_default_context(cafile=certifi.where())
+            ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
             connector = aiohttp.TCPConnector(
                 ssl=ssl_context,
                 ttl_dns_cache=300,
@@ -499,7 +500,7 @@ class GithubService:
                 for installation in user_installations:
                     app_auth = auth.get_installation_auth(installation["id"])
                     repos_url = installation["repositories_url"]
-                    github = Github(auth=app_auth)  # do not remove this line
+                    Github(auth=app_auth)  # do not remove this line
                     auth_headers = {"Authorization": f"Bearer {app_auth.token}"}
 
                     async with session.get(
@@ -698,7 +699,7 @@ class GithubService:
 
         # Use factory to create provider with PAT
 
-        token = random.choice(cls.gh_token_list)
+        token = secrets.choice(cls.gh_token_list)
         provider = GitHubProvider()
         provider.authenticate({"token": token}, AuthMethod.PERSONAL_ACCESS_TOKEN)
         return provider.client
