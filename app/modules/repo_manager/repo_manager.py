@@ -108,11 +108,7 @@ class RepoManager(IRepoManager):
             self.volume_limit_bytes = 100 * 1024 * 1024 * 1024
 
         logger.info(
-            "RepoManager initialized with base path %s, metadata path %s, volume limit %d bytes (%.2f GB)",
-            self.repos_base_path,
-            self.metadata_base_path,
-            self.volume_limit_bytes,
-            self.volume_limit_bytes / (1024**3),
+            f"RepoManager initialized with base path {self.repos_base_path}, metadata path {self.metadata_base_path}, volume limit {self.volume_limit_bytes:,} bytes ({self.volume_limit_bytes / (1024**3):.2f} GB)"
         )
 
     # ========== VALIDATION & SECURITY ==========
@@ -682,6 +678,23 @@ class RepoManager(IRepoManager):
 
         # Get auth token
         github_token = auth_token or self._get_github_token()
+
+        if github_token:
+            if auth_token:
+                # User token was passed and will be used
+                logger.info(
+                    f"Using user-provided GitHub token for cloning {repo_name} (token: {github_token[:8]}...)"
+                )
+            else:
+                # Environment token will be used
+                logger.info(
+                    f"Using environment GitHub token for cloning {repo_name} (token: {github_token[:8]}...)"
+                )
+        else:
+            logger.warning(
+                f"No GitHub token available for cloning {repo_name}. Will attempt unauthenticated access (public repos only)."
+            )
+
         clone_url = self._build_authenticated_url(repo_url, github_token)
 
         if bare_repo_path.exists() and (bare_repo_path / "HEAD").exists():

@@ -214,6 +214,13 @@ class ParsingController:
             if project:
                 project_id = project.id
 
+                # If project is already inferring, return current state (don't re-submit parse)
+                if project.status == ProjectStatusEnum.INFERRING.value:
+                    logger.info(
+                        f"Project {project_id} already in inferring state. Returning current state."
+                    )
+                    return {"project_id": project_id, "status": project.status}
+
                 # Check if this project is already parsed for the requested commit
                 # Only check commit status if commit_id is provided
                 if repo_details.commit_id:
@@ -332,7 +339,7 @@ class ParsingController:
 
     @staticmethod
     async def fetch_parsing_status(
-        project_id: str, db: AsyncSession, user: Dict[str, Any]
+        project_id: str, db: Session, user: Dict[str, Any]
     ):
         try:
             project_query = (
@@ -345,10 +352,10 @@ class ParsingController:
                     or_(
                         Project.user_id == user["user_id"],
                         Conversation.visibility == Visibility.PUBLIC,
-                        Conversation.shared_with_emails.any(user["email"]),
+                        Conversation.shared_with_emails.any(user.get("email", "")),
                     ),
                 )
-                .limit(1)  # Since we only need one result
+                .limit(1)
             )
 
             result = db.execute(project_query)
